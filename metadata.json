@@ -1,0 +1,6 @@
+{
+  "name": "CamConnect",
+  "description": "Verified student knowledge and mentorship platform connecting juniors with seniors and alumni through college-verified discussions, smart routing, and batch-to-batch handbooks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

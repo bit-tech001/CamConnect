@@ -1,0 +1,468 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Reusable Hardened Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedAuth() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedAuth() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerifiedAuth() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'bp2817433@gmail.com'
+      );
+    }
+
+    function isValidCategory(cat) {
+      return cat in ['Academics', 'Internships', 'Clubs', 'Projects', 'Campus Life', 'Career Guidance'];
+    }
+
+    function isValidRole(role) {
+      return role in ['junior', 'senior', 'alumni'];
+    }
+
+    function isValidStringList(arr, maxLen) {
+      return arr is list && arr.size() <= maxLen && (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 200));
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserPublic(data) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'role', 'batchYear', 'department',
+          'universityName', 'collegeDomain', 'isCollegeVerified',
+          'expertiseCategories', 'bio', 'helpfulCount', 'visibility',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'role', 'batchYear', 'department',
+          'universityName', 'collegeDomain', 'isCollegeVerified',
+          'expertiseCategories', 'bio', 'avatarUrl', 'helpfulCount',
+          'visibility', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80
+        && isValidRole(data.role)
+        && data.batchYear is string && data.batchYear.size() >= 4 && data.batchYear.size() <= 16
+        && data.department is string && data.department.size() >= 2 && data.department.size() <= 80
+        && data.universityName is string && data.universityName.size() >= 2 && data.universityName.size() <= 120
+        && data.collegeDomain is string && data.collegeDomain.size() >= 3 && data.collegeDomain.size() <= 80
+        && data.isCollegeVerified is bool
+        && isValidStringList(data.expertiseCategories, 6)
+        && data.bio is string && data.bio.size() <= 400
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 300))
+        && data.helpfulCount is int && data.helpfulCount >= 0
+        && data.visibility == 'campus'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll([
+          'uid', 'authEmail', 'collegeEmail', 'verificationMethod', 'verifiedAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'authEmail', 'collegeEmail', 'verificationMethod', 'verifiedAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.authEmail is string && data.authEmail.size() >= 3 && data.authEmail.size() <= 160
+        && data.collegeEmail is string && data.collegeEmail.size() >= 3 && data.collegeEmail.size() <= 160
+        && data.verificationMethod in ['domain_auto', 'campus_code']
+        && data.verifiedAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidQuestion(data) {
+      return data.keys().hasAll([
+          'id', 'authorId', 'authorName', 'authorRole', 'authorBatch', 'authorVerified',
+          'category', 'topic', 'title', 'body', 'routedMentorIds', 'routedMentorSummary',
+          'status', 'acceptedAnswerId', 'lastAnswerId', 'answerCount', 'helpfulCount', 'visibility',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'authorId', 'authorName', 'authorRole', 'authorBatch', 'authorVerified',
+          'category', 'topic', 'title', 'body', 'routedMentorIds', 'routedMentorSummary',
+          'status', 'acceptedAnswerId', 'lastAnswerId', 'answerCount', 'helpfulCount', 'visibility',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.authorId)
+        && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 80
+        && isValidRole(data.authorRole)
+        && data.authorBatch is string && data.authorBatch.size() >= 2 && data.authorBatch.size() <= 16
+        && data.authorVerified is bool
+        && isValidCategory(data.category)
+        && data.topic is string && data.topic.size() >= 2 && data.topic.size() <= 60
+        && data.title is string && data.title.size() >= 8 && data.title.size() <= 160
+        && data.body is string && data.body.size() >= 15 && data.body.size() <= 4000
+        && isValidStringList(data.routedMentorIds, 6)
+        && data.routedMentorSummary is string && data.routedMentorSummary.size() <= 160
+        && data.status in ['open', 'answered', 'archived_faq']
+        && data.acceptedAnswerId is string && data.acceptedAnswerId.size() <= 128
+        && data.lastAnswerId is string && data.lastAnswerId.size() <= 128
+        && data.answerCount is int && data.answerCount >= 0
+        && data.helpfulCount is int && data.helpfulCount >= 0
+        && data.visibility == 'campus'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAnswer(data) {
+      return data.keys().hasAll([
+          'id', 'questionId', 'authorId', 'authorName', 'authorRole', 'authorBatch',
+          'authorDepartment', 'authorVerified', 'body', 'isAccepted', 'helpfulCount',
+          'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'questionId', 'authorId', 'authorName', 'authorRole', 'authorBatch',
+          'authorDepartment', 'authorVerified', 'body', 'isAccepted', 'helpfulCount',
+          'visibility', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.questionId)
+        && isValidId(data.authorId)
+        && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 80
+        && isValidRole(data.authorRole)
+        && data.authorBatch is string && data.authorBatch.size() >= 2 && data.authorBatch.size() <= 16
+        && data.authorDepartment is string && data.authorDepartment.size() >= 2 && data.authorDepartment.size() <= 80
+        && data.authorVerified is bool
+        && data.body is string && data.body.size() >= 10 && data.body.size() <= 5000
+        && data.isAccepted is bool
+        && data.helpfulCount is int && data.helpfulCount >= 0
+        && data.visibility == 'campus'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVote(data) {
+      return data.keys().hasAll(['userId', 'targetId', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'targetId', 'createdAt'])
+        && isValidId(data.userId)
+        && isValidId(data.targetId)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidGuide(data) {
+      return data.keys().hasAll([
+          'id', 'authorId', 'authorName', 'authorRole', 'authorBatch', 'authorDepartment',
+          'guideType', 'category', 'title', 'summary', 'content', 'keyTakeaways',
+          'resourceLinks', 'helpfulCount', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'authorId', 'authorName', 'authorRole', 'authorBatch', 'authorDepartment',
+          'guideType', 'category', 'title', 'summary', 'content', 'keyTakeaways',
+          'resourceLinks', 'helpfulCount', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.authorId)
+        && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 80
+        && data.authorRole in ['senior', 'alumni']
+        && data.authorBatch is string && data.authorBatch.size() >= 2 && data.authorBatch.size() <= 16
+        && data.authorDepartment is string && data.authorDepartment.size() >= 2 && data.authorDepartment.size() <= 80
+        && data.guideType in ['Preparation Guide', 'Internship Experience', 'Club Documentation', 'Resources & Advice']
+        && isValidCategory(data.category)
+        && data.title is string && data.title.size() >= 8 && data.title.size() <= 160
+        && data.summary is string && data.summary.size() >= 15 && data.summary.size() <= 400
+        && data.content is string && data.content.size() >= 30 && data.content.size() <= 8000
+        && isValidStringList(data.keyTakeaways, 8)
+        && isValidStringList(data.resourceLinks, 5)
+        && data.helpfulCount is int && data.helpfulCount >= 0
+        && data.visibility == 'campus'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBookmark(data) {
+      return data.keys().hasAll(['id', 'userId', 'targetType', 'targetId', 'title', 'category', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'targetType', 'targetId', 'title', 'category', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.userId)
+        && data.targetType in ['question', 'guide']
+        && isValidId(data.targetId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 160
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 40
+        && data.createdAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list, create, update, delete: if false;
+    }
+
+    match /users_public/{userId} {
+      allow get: if isValidId(userId) && existing().visibility == 'campus';
+      allow list: if resource.data.visibility == 'campus';
+      allow create: if isVerifiedAuth()
+        && isValidId(userId)
+        && isValidUserPublic(incoming())
+        && (isAdmin() || (
+          request.auth.uid == userId
+          && incoming().uid == request.auth.uid
+          && incoming().helpfulCount == 0
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+        ));
+      allow update: if isVerifiedAuth()
+        && isValidId(userId)
+        && isValidUserPublic(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            isOwner(userId)
+            && incoming().helpfulCount == existing().helpfulCount
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName', 'role', 'batchYear', 'department', 'universityName',
+              'collegeDomain', 'isCollegeVerified', 'expertiseCategories', 'bio',
+              'avatarUrl', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    match /users_private/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserPrivate(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().verifiedAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserPrivate(incoming())
+        && incoming().uid == existing().uid
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'collegeEmail', 'verificationMethod', 'verifiedAt', 'updatedAt'
+        ]);
+      allow delete: if isValidId(userId) && isOwner(userId);
+    }
+
+    match /questions/{questionId} {
+      allow get: if isValidId(questionId) && existing().visibility == 'campus';
+      allow list: if resource.data.visibility == 'campus';
+      allow create: if isVerifiedAuth()
+        && isValidId(questionId)
+        && isValidQuestion(incoming())
+        && incoming().id == questionId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() || (
+            incoming().authorId == request.auth.uid
+            && incoming().status == 'open'
+            && incoming().acceptedAnswerId == ''
+            && incoming().lastAnswerId == ''
+            && incoming().answerCount == 0
+            && incoming().helpfulCount == 0
+          )
+        );
+      allow update: if isVerifiedAuth()
+        && isValidId(questionId)
+        && isValidQuestion(incoming())
+        && incoming().id == existing().id
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().status != 'archived_faq'
+            && existing().authorId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'body', 'topic', 'category', 'routedMentorIds', 'routedMentorSummary', 'updatedAt'
+            ])
+          ) ||
+          (
+            existing().status != 'archived_faq'
+            && existing().authorId == request.auth.uid
+            && incoming().status in ['answered', 'archived_faq']
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'acceptedAnswerId', 'updatedAt'])
+          ) ||
+          (
+            existing().status != 'archived_faq'
+            && isValidId(incoming().lastAnswerId)
+            && !exists(/databases/$(database)/documents/questions/$(questionId)/answers/$(incoming().lastAnswerId))
+            && existsAfter(/databases/$(database)/documents/questions/$(questionId)/answers/$(incoming().lastAnswerId))
+            && incoming().answerCount == existing().answerCount + 1
+            && incoming().status in ['open', 'answered']
+            && incoming().diff(existing()).affectedKeys().hasOnly(['answerCount', 'lastAnswerId', 'status', 'updatedAt'])
+          ) ||
+          (
+            !exists(/databases/$(database)/documents/questions/$(questionId)/votes/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/questions/$(questionId)/votes/$(request.auth.uid))
+            && incoming().helpfulCount == existing().helpfulCount + 1
+            && incoming().diff(existing()).affectedKeys().hasOnly(['helpfulCount', 'updatedAt'])
+          ) ||
+          (
+            exists(/databases/$(database)/documents/questions/$(questionId)/votes/$(request.auth.uid))
+            && !existsAfter(/databases/$(database)/documents/questions/$(questionId)/votes/$(request.auth.uid))
+            && existing().helpfulCount > 0
+            && incoming().helpfulCount == existing().helpfulCount - 1
+            && incoming().diff(existing()).affectedKeys().hasOnly(['helpfulCount', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedAuth() && isValidId(questionId) && (isAdmin() || existing().authorId == request.auth.uid);
+
+      match /answers/{answerId} {
+        allow get: if isValidId(questionId) && isValidId(answerId) && existing().visibility == 'campus';
+        allow list: if resource.data.visibility == 'campus';
+        allow create: if isVerifiedAuth()
+          && isValidId(questionId)
+          && isValidId(answerId)
+          && isValidAnswer(incoming())
+          && incoming().id == answerId
+          && incoming().questionId == questionId
+          && incoming().authorId == request.auth.uid
+          && incoming().isAccepted == false
+          && incoming().helpfulCount == 0
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/questions/$(questionId));
+        allow update: if isVerifiedAuth()
+          && isValidId(questionId)
+          && isValidId(answerId)
+          && isValidAnswer(incoming())
+          && incoming().id == existing().id
+          && incoming().questionId == existing().questionId
+          && incoming().authorId == existing().authorId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            isAdmin() ||
+            (
+              existing().authorId == request.auth.uid
+              && incoming().diff(existing()).affectedKeys().hasOnly(['body', 'updatedAt'])
+            ) ||
+            (
+              get(/databases/$(database)/documents/questions/$(questionId)).data.authorId == request.auth.uid
+              && incoming().diff(existing()).affectedKeys().hasOnly(['isAccepted', 'updatedAt'])
+            )
+          );
+        allow delete: if isVerifiedAuth() && isValidId(questionId) && isValidId(answerId) && (isAdmin() || existing().authorId == request.auth.uid);
+      }
+
+      match /votes/{userId} {
+        allow get: if isValidId(questionId) && isValidId(userId) && isOwner(userId);
+        allow list: if isVerifiedAuth() && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(questionId)
+          && isValidId(userId)
+          && isOwner(userId)
+          && isValidVote(incoming())
+          && incoming().userId == request.auth.uid
+          && incoming().targetId == questionId
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/questions/$(questionId));
+        allow update: if false;
+        allow delete: if isValidId(questionId) && isValidId(userId) && isOwner(userId);
+      }
+    }
+
+    match /guides/{guideId} {
+      allow get: if isValidId(guideId) && existing().visibility == 'campus';
+      allow list: if resource.data.visibility == 'campus';
+      allow create: if isVerifiedAuth()
+        && isValidId(guideId)
+        && isValidGuide(incoming())
+        && incoming().id == guideId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() || (
+            incoming().authorId == request.auth.uid
+            && incoming().helpfulCount == 0
+            && get(/databases/$(database)/documents/users_public/$(request.auth.uid)).data.role in ['senior', 'alumni']
+          )
+        );
+      allow update: if isVerifiedAuth()
+        && isValidId(guideId)
+        && isValidGuide(incoming())
+        && incoming().id == existing().id
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().authorId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'summary', 'content', 'guideType', 'category', 'keyTakeaways', 'resourceLinks', 'updatedAt'
+            ])
+          ) ||
+          (
+            !exists(/databases/$(database)/documents/guides/$(guideId)/votes/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/guides/$(guideId)/votes/$(request.auth.uid))
+            && incoming().helpfulCount == existing().helpfulCount + 1
+            && incoming().diff(existing()).affectedKeys().hasOnly(['helpfulCount', 'updatedAt'])
+          ) ||
+          (
+            exists(/databases/$(database)/documents/guides/$(guideId)/votes/$(request.auth.uid))
+            && !existsAfter(/databases/$(database)/documents/guides/$(guideId)/votes/$(request.auth.uid))
+            && existing().helpfulCount > 0
+            && incoming().helpfulCount == existing().helpfulCount - 1
+            && incoming().diff(existing()).affectedKeys().hasOnly(['helpfulCount', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedAuth() && isValidId(guideId) && (isAdmin() || existing().authorId == request.auth.uid);
+
+      match /votes/{userId} {
+        allow get: if isValidId(guideId) && isValidId(userId) && isOwner(userId);
+        allow list: if isVerifiedAuth() && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(guideId)
+          && isValidId(userId)
+          && isOwner(userId)
+          && isValidVote(incoming())
+          && incoming().userId == request.auth.uid
+          && incoming().targetId == guideId
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/guides/$(guideId));
+        allow update: if false;
+        allow delete: if isValidId(guideId) && isValidId(userId) && isOwner(userId);
+      }
+    }
+
+    match /bookmarks/{bookmarkId} {
+      allow get: if isVerifiedAuth() && isValidId(bookmarkId) && existing().userId == request.auth.uid;
+      allow list: if isVerifiedAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isVerifiedAuth()
+        && isValidId(bookmarkId)
+        && isValidBookmark(incoming())
+        && incoming().id == bookmarkId
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerifiedAuth() && isValidId(bookmarkId) && existing().userId == request.auth.uid;
+    }
+  }
+}

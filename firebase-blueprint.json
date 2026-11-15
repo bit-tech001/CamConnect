@@ -1,0 +1,567 @@
+{
+  "entities": {
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Publicly visible verified campus student, senior, or alumni profile without PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "role": {
+          "type": "string",
+          "enum": ["junior", "senior", "alumni"]
+        },
+        "batchYear": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 16
+        },
+        "department": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "universityName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "collegeDomain": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "isCollegeVerified": {
+          "type": "boolean"
+        },
+        "expertiseCategories": {
+          "type": "array",
+          "description": "Up to 6 mentorship categories for Smart Mentorship routing."
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "avatarUrl": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "helpfulCount": {
+          "type": "integer"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["campus"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "role",
+        "batchYear",
+        "department",
+        "universityName",
+        "collegeDomain",
+        "isCollegeVerified",
+        "expertiseCategories",
+        "bio",
+        "helpfulCount",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Owner-only PII record containing verified college email and auth email.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authEmail": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "collegeEmail": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "verificationMethod": {
+          "type": "string",
+          "enum": ["domain_auto", "campus_code"]
+        },
+        "verifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "authEmail",
+        "collegeEmail",
+        "verificationMethod",
+        "verifiedAt",
+        "updatedAt"
+      ]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "Structured Q&A thread routed to relevant seniors and archived in the knowledge repository.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "authorRole": {
+          "type": "string",
+          "enum": ["junior", "senior", "alumni"]
+        },
+        "authorBatch": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "authorVerified": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Academics",
+            "Internships",
+            "Clubs",
+            "Projects",
+            "Campus Life",
+            "Career Guidance"
+          ]
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "title": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 160
+        },
+        "body": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 4000
+        },
+        "routedMentorIds": {
+          "type": "array",
+          "description": "Up to 6 mentor UIDs matched by category/expertise."
+        },
+        "routedMentorSummary": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "answered", "archived_faq"]
+        },
+        "acceptedAnswerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "lastAnswerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "answerCount": {
+          "type": "integer"
+        },
+        "helpfulCount": {
+          "type": "integer"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["campus"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "authorName",
+        "authorRole",
+        "authorBatch",
+        "authorVerified",
+        "category",
+        "topic",
+        "title",
+        "body",
+        "routedMentorIds",
+        "routedMentorSummary",
+        "status",
+        "acceptedAnswerId",
+        "lastAnswerId",
+        "answerCount",
+        "helpfulCount",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Answer": {
+      "title": "Answer",
+      "description": "Verified senior or peer answer inside a structured question thread.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "questionId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "authorRole": {
+          "type": "string",
+          "enum": ["junior", "senior", "alumni"]
+        },
+        "authorBatch": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "authorDepartment": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "authorVerified": {
+          "type": "boolean"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 5000
+        },
+        "isAccepted": {
+          "type": "boolean"
+        },
+        "helpfulCount": {
+          "type": "integer"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["campus"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "questionId",
+        "authorId",
+        "authorName",
+        "authorRole",
+        "authorBatch",
+        "authorDepartment",
+        "authorVerified",
+        "body",
+        "isAccepted",
+        "helpfulCount",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "QuestionVote": {
+      "title": "QuestionVote",
+      "description": "One-per-user helpful vote record for a question.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "questionId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "questionId", "createdAt"]
+    },
+    "BatchGuide": {
+      "title": "BatchGuide",
+      "description": "Batch-to-batch legacy handbook left behind by seniors and alumni.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "authorRole": {
+          "type": "string",
+          "enum": ["senior", "alumni"]
+        },
+        "authorBatch": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "authorDepartment": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "guideType": {
+          "type": "string",
+          "enum": [
+            "Preparation Guide",
+            "Internship Experience",
+            "Club Documentation",
+            "Resources & Advice"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Academics",
+            "Internships",
+            "Clubs",
+            "Projects",
+            "Campus Life",
+            "Career Guidance"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 160
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 400
+        },
+        "content": {
+          "type": "string",
+          "minLength": 30,
+          "maxLength": 8000
+        },
+        "keyTakeaways": {
+          "type": "array",
+          "description": "Up to 8 actionable takeaways."
+        },
+        "resourceLinks": {
+          "type": "array",
+          "description": "Up to 5 reference resource labels or URLs."
+        },
+        "helpfulCount": {
+          "type": "integer"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["campus"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "authorName",
+        "authorRole",
+        "authorBatch",
+        "authorDepartment",
+        "guideType",
+        "category",
+        "title",
+        "summary",
+        "content",
+        "keyTakeaways",
+        "resourceLinks",
+        "helpfulCount",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "Personal saved discussion or batch guide bookmark.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "targetType": {
+          "type": "string",
+          "enum": ["question", "guide"]
+        },
+        "targetId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "targetType",
+        "targetId",
+        "title",
+        "category",
+        "createdAt"
+      ]
+    },
+    "GuideVote": {
+      "title": "GuideVote",
+      "description": "One-per-user helpful vote record for a batch guide.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "targetId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "targetId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users_public/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublic" },
+      "description": "Public campus student, senior, and alumni profiles (no PII)."
+    },
+    "/users_private/{userId}": {
+      "schema": { "$ref": "#/entities/UserPrivate" },
+      "description": "Owner-only PII record storing verified college email."
+    },
+    "/questions/{questionId}": {
+      "schema": { "$ref": "#/entities/Question" },
+      "description": "Structured campus Q&A threads routed to seniors."
+    },
+    "/questions/{questionId}/answers/{answerId}": {
+      "schema": { "$ref": "#/entities/Answer" },
+      "description": "Answers to a specific question thread."
+    },
+    "/questions/{questionId}/votes/{userId}": {
+      "schema": { "$ref": "#/entities/QuestionVote" },
+      "description": "Per-user helpful vote record for a question."
+    },
+    "/guides/{guideId}": {
+      "schema": { "$ref": "#/entities/BatchGuide" },
+      "description": "Batch-to-batch knowledge transfer handbooks and resources."
+    },
+    "/guides/{guideId}/votes/{userId}": {
+      "schema": { "$ref": "#/entities/GuideVote" },
+      "description": "Per-user helpful vote record for a batch guide."
+    },
+    "/bookmarks/{bookmarkId}": {
+      "schema": { "$ref": "#/entities/Bookmark" },
+      "description": "Private user bookmarks for saved threads and guides."
+    }
+  }
+}
